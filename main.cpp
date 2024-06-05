@@ -274,6 +274,136 @@ int QuadtreeNode::isExternal()
 	return (pts != NULL);
 }
 
+/////////////////////////////////////////////////// 9.4.1
+
+class TwoDTree {
+private:
+	TwoDTreeNode* root;
+	TwoDTreeNode* buildTwoDTree(Point* x[], Point* y[], int n, int cutType);
+public:
+	TwoDTree(Point p[], int n);
+	~TwoDTree(void);
+	List<Point*>* rangeQuery(Rectangle& range);
+}
+
+
+/////////////////////////////////////////////
+
+class TwoDTreeNode {
+private:
+	Point* pnt; // точка, ассоциированная с узлом 
+	TwoDTreeNode* lchild; // слева или под линией отсечения 
+	TwoDTreeNode* rchild; // справа или над линией стсечения 
+	List<Point*> #rangeQuery(Rectangle& range, int cutType);
+public:
+	TwoDTreeNode(Point*);
+	~TwoDTreeNode(void);
+	friend class TwoDTree;
+};
+
+/////////////////////////////////////////////// 9.4.2
+
+TwoDTree::TwoDTree(Point p[], int n)
+{
+	Paint** x = new (Point*)[n];
+	Point** y = new (Point*)[n];
+	for (int i = 0; i < n; i++)
+		x[i] = y[i] = new Point(p[i]);
+	mergeSort(x, n, leftToRightCmp);
+	mergeSort(y, n, bottomToTopCmp);
+	root = buildTwoDTree(x, y, n, VERTICAL);
+}
+
+//////////////////////////////////////////////
+
+enum (VERTICAL = 0, HORIZONTAL = 1);
+
+/////////////////////////////////////////////
+
+TwoDTreeNode* TwoDTree::buildTwoDTree(Point* x[], Point* y[], int n, int cutType)
+{
+	if (n == 0)
+		return NULL;
+	else if (n == 1)
+		return new TwoDTreeNode(x[0]);
+	int m = n / 2;
+	int (*cmp) (Point*, Point*);
+	if (cutType == VERTICAL) cmp = leftToRightCmp;
+	else cmp = bottomToTopCmp;
+	TwoDTreeNode* p = new TwoDTreeNode(x[m]);
+	Point** yL = new (Point*)[m];
+	Point** yR = new (Point*)[n - m];
+	splitPointSet(y, n, x[m], yL, yR, cmp);
+	p->lchild = buildTwoDTree(yL, x, m, 1 - cutType);
+	p->rchild = buildTwoDTree(yR, x + m + l, n - m - 1, 1 - cutType);
+	delete yL;
+	delete yR;
+	return p;
+}
+
+///////////////////////////////////////////////
+
+TwoDTree::~TwoDTree()
+{
+	delete root;
+}
+
+/////////////////////////////////////////////
+
+TwoDTreeNode::TwoDTreeNode(Point* pnt) :
+	pnt(_pnt), lchild(NULL), rchild(NULL)
+	(
+		)
+
+	////////////////////////////////////////////
+
+	TwoDTreeNoda::~TwoDTreeNode()
+{
+	if (lchild) delete lchild;
+	if (rchild) delete rchild;
+	delete pnt;
+}
+
+/////////////////////////////////////////// 9.4.3
+
+List<Point*>* TwoDTree::rangeQuery(Rectangle& R)
+{
+	return root->rangeQuery(R, VERTICAL);
+}
+
+//////////////////////////////////////////
+
+List<Point*>* TwoDTreeNode::rangeQuery(Rectangle& R, int cutType)
+{
+	List<Point*>* result = new List<Point*>;
+	if (pointInRectangle(*pnt, R))
+		result->append(pnt);
+	int (*cmp) (Point*, Point*);
+	cmp = (cutType == VERTICAL) ? leftToRightCmp : bottomToTopCmp;
+	if (lchild && ((*cmp) (&R.sw, pnt) < 0))
+		result->append(lchild->rangeQuery(R, 1 - cutType));
+	if (rchild && ((*cmp) (&R.ne, pnt) > 0))
+		result->append(rchild->rangeQuery(R, 1 - cutType)) :
+		return result;
+}
+
+
+///////////////////////////////////////////// 9.4.4.
+
+void splitPointSet(Point* y[], int n, Point* p,
+	Point* yL[], Point* yR[],
+	int (*cmp)(Point*, Point*))
+{
+	int lindx = 0, rindx = 0;
+
+	for (int i = 0; i < n; i++) {
+		if ((*cmp) (y[i], p) < 0)
+			YL[lindx++] = y[i];
+		else if ((*cmp) (y[i], p) > 0)
+			yR[rindx++] = y[i];
+	}
+}
+
 /////////////////////////////////////////////////// 9.5.1
 
 class BspTree {
