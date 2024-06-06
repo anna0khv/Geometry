@@ -1,0 +1,320 @@
+class grid {
+    constructor(n, c) {
+        this.m = n; // число ячеек по стороне
+        this.cellSize = c;
+        //  for (var i = 0; i < this.m; i++) {
+        //      var lines1 = BABYLON.MeshBuilder.CreateLines("linesgr", { points: [new BABYLON.Vector3(i, 0, 0), new BABYLON.Vector3(i, 0, this.m)] }, this.scene);
+        //      var lines1 = BABYLON.MeshBuilder.CreateLines("linesgr", { points: [new BABYLON.Vector3(0, 0, i), new BABYLON.Vector3(this.m, 0, i)] }, this.scene);
+        // }
+        this.grid = Array.from({ length: this.m }, () => Array.from({ length: this.m }, () => []));
+    }
+
+    // Добавление элемента в ячейку с заданными индексами
+    addItem(row, column, item) {
+        if (this.grid[row] && this.grid[row][column]) {
+            this.grid[row][column].push(item);
+        } else {
+            console.error('Invalid row or column index.');
+        }
+    }
+    getItems(row, column) {
+        if (this.grid[row] && this.grid[row][column]) {
+            return this.grid[row][column];
+        } else {
+            console.error('Invalid row or column index.');
+            return [];
+        }
+    }
+}
+class QuadTree {
+    
+    constructor(gr, M,D) {//  заполняемость и коэффициент глубины
+
+       
+      
+        let domain=[new BABYLON.Vector3(0, 0, 0),new BABYLON.Vector3(gr.m*gr.cellSize, 0, gr.m*gr.cellSize)];//левый и правый угол четырех угольника
+        var points = [];
+        
+        this.root=this.buildQuadratTree(gr,M,D,0,0,gr.m,0,gr.m);
+        
+        
+    }
+    buildQuadratTree(G,M,D, level, imin , imax,jmin,jmax){
+        
+           
+        if(level>=D+1){
+            let array=[]
+              const leftX=Math.floor(imin);
+    const leftY=Math.floor(jmin);
+    const rightX=Math.ceil(imax-1);
+    const rightY=Math.ceil(jmax-1);//получили углы
+    for(let i=leftX;i<=rightX;i++){//можно убрать равно
+        for(let j=leftY;j<=rightY;j++){
+           let getSphere= G.getItems(i,j)//получили массив точек
+           let arrayPoint=[];
+            G.grid[i][j]=arrayPoint;
+           for(let g=0;g<getSphere.length;g++){
+               
+             array.push(getSphere[g])
+               
+              
+           }
+            
+            
+        }
+    }
+
+
+           let q=new QuadTreeNode(array)
+
+            
+            return q
+        }else{
+
+            let p=new QuadTreeNode();
+            p.rectangle.push(imin);
+            p.rectangle.push(imax);
+            p.rectangle.push(jmin);
+            p.rectangle.push(jmax);
+            let imid=(imin+imax)/2;
+
+            let jmid=(jmin+jmax)/2;
+            
+            //записываем все по массивчику
+            p.child[0]=this.buildQuadratTree(G,M,D,level+1,imid,imax,jmid,jmax)//северо восток
+            p.child[1]=this.buildQuadratTree(G,M,D,level+1,imid,imax,jmin,jmid)//юговосток
+            p.child[2]=this.buildQuadratTree(G,M,D,level+1,imin,imid,jmin,jmid)//югозапад
+            p.child[3]=this.buildQuadratTree(G,M,D,level+1,imin,imid,jmid,jmax)//северо запад
+           
+           
+            for(let i=0;i<4;i++){
+                p.size+=p.child[i].size;
+            }
+            if(p.size<=M||level>=D){//слияем
+           
+            
+                p.points=[]
+              for(let i=0;i<4;i++){
+                
+                for(let g=0;g<p.child[i].points.length;g++){
+                    p.points.push(p.child[i].points[g])
+             
+                }
+              delete p.child[i];
+              p.child[i]=[];
+               
+              }
+              
+            }
+            
+            return p;
+        }
+    }
+    
+
+
+}
+
+class QuadTreeNode {
+    
+    constructor(array) {
+        
+       this.rectangle=[];
+       this.child = [0,0,0,0];
+         this.points = [];//точки если узел внешний
+        //null если внутренний
+        this.size // число точек накрываемых узлом
+        
+       if(!array){//пустой конструктор
+           //console.log(" ПУСТОЙ")
+           this.points=[];
+            this.size=0;
+            for(let i=0;i<4;i++){
+                this.child[i]=[]
+            }
+       }else{//Не пустой
+        
+            this.points=array;
+             
+            this.size=this.points.length;
+            for(let i=0;i<4;i++){
+                this.child[i]=[]
+            }
+       }
+    }
+     destructor() {
+        // Освобождение ресурсов или выполнение других действий
+        console.log("Destructor called");
+    }
+
+}
+function pointInRectangle(point,min,max){
+    
+    return point.x < max.x && point.x > min.x && point.z < max.z && point.z > min.z;
+  
+}
+function traverseQuadTreeDrow(node) {//тут рисуем 
+
+    if (!node) {
+        return;
+    }
+    // Рекурсивно обходим каждого потомка узла
+    for (let i = 0; i < 4; i++) {
+        var points = [
+                    new BABYLON.Vector3(node.rectangle[0], 0, node.rectangle[2]),
+                    new BABYLON.Vector3(node.rectangle[0], 0, node.rectangle[3]),
+                    new BABYLON.Vector3(node.rectangle[1], 0, node.rectangle[3]),
+                    new BABYLON.Vector3(node.rectangle[1], 0, node.rectangle[2]),
+                    new BABYLON.Vector3(node.rectangle[0], 0, node.rectangle[2])
+                ];
+                
+            var lines = BABYLON.MeshBuilder.CreateLines("lines", {points: points}, this.scene);
+        if(node.child[i]!=0){
+           
+            
+             traverseQuadTreeDrow(node.child[i]);
+        }
+         
+    } 
+}
+function traverseQuadTree(node,leftConor,rightConor) {//тут рисуем 
+
+    if (!node) {
+        return;
+    }
+            const leftX=Math.floor(leftConor.x);
+                const leftY=Math.floor(leftConor.z);
+                const rightX=Math.ceil(rightConor.x);
+             const rightY=Math.ceil(rightConor.z);//получили углы
+              
+     if( leftX <=node.rectangle[1] && node.rectangle[0]<=rightX&&leftY<=node.rectangle[3]&&  node.rectangle[2]<=rightY)
+            {
+               // console.log("asdad")
+                
+                 if(node.child[1]!=0){//значит точно есть дети
+                        for (let i = 0; i < 4; i++) {
+                        traverseQuadTree(node.child[i],leftConor,rightConor);
+         
+                        } 
+                    }else{
+                         let getSphere= node.points//получили массив точек
+                var sphereMaterial = new BABYLON.StandardMaterial("sphereMaterial", this.scene);
+                sphereMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Красный цвет
+            for(let g=0;g<getSphere.length;g++){
+                
+                if(pointInRectangle(getSphere[g].position,leftConor,rightConor))
+                {
+                    getSphere[g].material =sphereMaterial;
+                    
+                }
+               
+             
+            }
+                    }
+
+            }    
+
+                    
+
+
+
+            
+            
+               
+    // Рекурсивно обходим каждого потомка узла
+    
+    
+}
+var createScene = function () {
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    // This creates and positions a free camera (non-mesh)
+  var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(8, 30, 8), scene);
+                camera.setTarget(BABYLON.Vector3.Zero());
+camera.attachControl(canvas, true);
+    // This targets the camera to scene origin
+    camera.setTarget(BABYLON.Vector3.Zero());
+
+    // This attaches the camera to the canvas
+    camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    light.intensity = 0.7;
+
+    
+
+   var points = [
+                    new BABYLON.Vector3(0, 0, 0),
+                    new BABYLON.Vector3(0, 0, 16),
+                    new BABYLON.Vector3(16, 0, 16),
+                    new BABYLON.Vector3(16, 0, 0),
+                    new BABYLON.Vector3(0, 0,0)
+                ];
+
+                var lines = BABYLON.MeshBuilder.CreateLines("lines", {points: points}, scene);
+
+                var startPoint = new BABYLON.Vector3(0, 0, 0);
+  
+    var points = [];
+     
+    for (var i = 0; i < 100; i++) {
+      
+        var point = new BABYLON.Vector3(Math.random() * 16, 0, Math.random() * 16);
+
+        var sphere = BABYLON.MeshBuilder.CreateSphere("sphere" + i, { diameter: 0.5 }, scene);
+       sphere.position = point;
+    points.push(sphere);
+       
+    }
+
+    let m=16;
+    let c=1;
+   const Grid = new grid(m,c);
+
+    for(let i=0;i<points.length;i++){
+         
+        Grid.addItem(Math.floor(points[i].position.x),Math.floor(points[i].position.z),points[i])
+    }
+    //мы создали сетку
+
+    let leftConor=new BABYLON.Vector3(0, 0, 0);
+    let rightConor=new BABYLON.Vector3(7, 0, 7);
+    const leftX=Math.floor(leftConor.x);
+    const leftY=Math.floor(leftConor.z);
+    const rightX=Math.ceil(rightConor.x);
+    const rightY=Math.ceil(rightConor.z);//получили углы
+
+ 
+   let tree= new QuadTree(Grid,3,6)
+    traverseQuadTreeDrow(tree.root,leftConor,rightConor);
+    traverseQuadTree(tree.root,leftConor,rightConor);
+
+ var sphereMaterial = new BABYLON.StandardMaterial("sphereMaterial", scene);
+ sphereMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Красный цвет
+
+
+
+    // for(let i=leftX;i<=rightX;i++){//можно убрать равно
+    //     for(let j=leftY;j<=rightY;j++){
+    //        let getSphere= Grid.getItems(i,j)//получили массив точек
+           
+    //        for(let g=0;g<getSphere.length;g++){
+               
+             
+    //            if(pointInRectangle(getSphere[g].position,leftConor,rightConor))
+    //            {
+    //                 getSphere[g].material =sphereMaterial;
+    //            }
+              
+    //        }
+            
+            
+    //     }
+    // }
+
+    return scene;
+};
